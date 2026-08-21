@@ -18,11 +18,36 @@ describe('POST /quotes', () => {
     expect(res.json()).toEqual({ deliveryFeeCents: 500 });
   });
 
+  it('omitting serviceLevel uses standard fee', async () => {
+    const res = await post({ subtotalCents: 3200, distanceKm: 4 });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ deliveryFeeCents: 500 });
+  });
+
+  it('serviceLevel standard uses existing fee', async () => {
+    const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'standard' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ deliveryFeeCents: 500 });
+  });
+
+  it('serviceLevel rush adds 300-cent surcharge', async () => {
+    const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'rush' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ deliveryFeeCents: 800 });
+  });
+
+  it('rush with free-delivery subtotal returns 300 cents', async () => {
+    const res = await post({ subtotalCents: 5000, distanceKm: 40, serviceLevel: 'rush' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ deliveryFeeCents: 300 });
+  });
+
   it.each([
     ['missing distanceKm', { subtotalCents: 3200 }],
     ['missing subtotalCents', { distanceKm: 4 }],
     ['wrong type', { subtotalCents: '3200', distanceKm: 4 }],
     ['negative distance', { subtotalCents: 3200, distanceKm: -1 }],
+    ['invalid serviceLevel', { subtotalCents: 3200, distanceKm: 4, serviceLevel: 'express' }],
   ])('rejects %s with 400', async (_name, payload) => {
     const res = await post(payload);
     expect(res.statusCode).toBe(400);
