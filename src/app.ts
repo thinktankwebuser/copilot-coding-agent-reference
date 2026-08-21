@@ -1,7 +1,7 @@
 import Fastify, { type FastifyError } from 'fastify';
-import { deliveryFeeCents } from './quote.js';
+import { deliveryFeeCents, type ServiceLevel } from './quote.js';
 
-type QuoteBody = { subtotalCents: number; distanceKm: number };
+type QuoteBody = { subtotalCents: number; distanceKm: number; serviceLevel?: ServiceLevel };
 
 const quoteBodySchema = {
   type: 'object',
@@ -9,6 +9,7 @@ const quoteBodySchema = {
   properties: {
     subtotalCents: { type: 'integer', minimum: 0 },
     distanceKm: { type: 'number', minimum: 0 },
+    serviceLevel: { type: 'string', enum: ['standard', 'rush'] },
   },
 } as const;
 
@@ -24,8 +25,8 @@ export function buildApp() {
   });
 
   app.post<{ Body: QuoteBody }>('/quotes', { schema: { body: quoteBodySchema } }, (request) => {
-    const { subtotalCents, distanceKm } = request.body;
-    return { deliveryFeeCents: deliveryFeeCents(subtotalCents, distanceKm) };
+    const { subtotalCents, distanceKm, serviceLevel } = request.body;
+    return { deliveryFeeCents: deliveryFeeCents(subtotalCents, distanceKm, serviceLevel) };
   });
 
   return app;
