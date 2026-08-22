@@ -26,13 +26,13 @@ Goal: the smallest coherent change that satisfies the Issue, with tests, passing
 ## 4. Verify
 
 - Run `npm run verify`.
-- If it fails because of your change, fix the cause. If a failure is unrelated to your change, do not work around it; report it in the PR.
+- If it fails because of your change, fix the cause. If a failure is unrelated to your change, follow the unrelated-failure rule in `AGENTS.md`: do not fix it, do not work around it, report it in the PR with evidence that it is pre-existing, and leave the PR as a draft.
 - Do not edit lint, format, typecheck, test, or CI configuration to get a pass.
 
 ## 5. Check the result
 
 - Re-read the Issue. Confirm each acceptance criterion is met by a specific test or change; list any that are not.
-- Review the full diff (`git diff`) for anything outside the Issue's scope. Revert it.
+- Review the full diff of the branch against the PR's base branch (`git diff origin/main...HEAD`) for anything outside the Issue's scope. Revert it. Do not use bare `git diff` here: it shows only uncommitted work, so anything you already committed on the branch would escape this check.
 
 ## 6. PR evidence
 
