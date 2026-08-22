@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deliveryFeeCents } from './quote.js';
+import { calculateDeliveryQuote, deliveryFeeCents } from './quote.js';
 
 describe('deliveryFeeCents', () => {
   it.each([
@@ -11,6 +11,36 @@ describe('deliveryFeeCents', () => {
     [40, 1500],
   ])('distance %s km -> %s cents', (distanceKm, expected) => {
     expect(deliveryFeeCents(3200, distanceKm)).toBe(expected);
+  });
+
+  describe('calculateDeliveryQuote', () => {
+    it('returns base-only breakdown for standard service', () => {
+      expect(calculateDeliveryQuote(3200, 4)).toEqual({
+        deliveryFeeCents: 500,
+        breakdown: [{ code: 'base', amountCents: 500 }],
+      });
+    });
+
+    it('keeps base line at zero for free-delivery subtotal', () => {
+      expect(calculateDeliveryQuote(5000, 40)).toEqual({
+        deliveryFeeCents: 0,
+        breakdown: [{ code: 'base', amountCents: 0 }],
+      });
+    });
+
+    it('adds rush after base and keeps lines equal to total', () => {
+      const quote = calculateDeliveryQuote(5000, 40, 'rush');
+      expect(quote).toEqual({
+        deliveryFeeCents: 300,
+        breakdown: [
+          { code: 'base', amountCents: 0 },
+          { code: 'rush', amountCents: 300 },
+        ],
+      });
+      expect(quote.breakdown.reduce((sum, line) => sum + line.amountCents, 0)).toBe(
+        quote.deliveryFeeCents,
+      );
+    });
   });
 
   it('is free when subtotal is at least 5000 cents', () => {

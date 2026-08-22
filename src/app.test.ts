@@ -9,37 +9,61 @@ describe('POST /quotes', () => {
   it('returns the delivery fee', async () => {
     const res = await post({ subtotalCents: 3200, distanceKm: 4 });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ deliveryFeeCents: 500 });
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 500,
+      breakdown: [{ code: 'base', amountCents: 500 }],
+    });
   });
 
   it('ignores unknown fields', async () => {
     const res = await post({ subtotalCents: 3200, distanceKm: 4, extra: 'ignored' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ deliveryFeeCents: 500 });
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 500,
+      breakdown: [{ code: 'base', amountCents: 500 }],
+    });
   });
 
   it('omitting serviceLevel uses standard fee', async () => {
     const res = await post({ subtotalCents: 3200, distanceKm: 4 });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ deliveryFeeCents: 500 });
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 500,
+      breakdown: [{ code: 'base', amountCents: 500 }],
+    });
   });
 
   it('serviceLevel standard uses existing fee', async () => {
     const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'standard' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ deliveryFeeCents: 500 });
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 500,
+      breakdown: [{ code: 'base', amountCents: 500 }],
+    });
   });
 
   it('serviceLevel rush adds 300-cent surcharge', async () => {
     const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'rush' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ deliveryFeeCents: 800 });
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 800,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+      ],
+    });
   });
 
   it('rush with free-delivery subtotal returns 300 cents', async () => {
     const res = await post({ subtotalCents: 5000, distanceKm: 40, serviceLevel: 'rush' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ deliveryFeeCents: 300 });
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 300,
+      breakdown: [
+        { code: 'base', amountCents: 0 },
+        { code: 'rush', amountCents: 300 },
+      ],
+    });
   });
 
   it.each([
