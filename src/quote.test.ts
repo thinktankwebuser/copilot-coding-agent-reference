@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateDeliveryQuote,
   deliveryFeeCents,
+  SMALL_ORDER_SURCHARGE_CENTS,
+  SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
   WEIGHT_SURCHARGE_HIGH_CENTS,
   WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS,
   WEIGHT_SURCHARGE_LOW_CENTS,
@@ -105,6 +107,47 @@ describe('deliveryFeeCents', () => {
           { code: 'base', amountCents: 500 },
           { code: 'rush', amountCents: 300 },
           { code: 'weight', amountCents: 200 },
+        ],
+      });
+    });
+
+    it.each([
+      [
+        0,
+        {
+          deliveryFeeCents: 500 + SMALL_ORDER_SURCHARGE_CENTS,
+          breakdown: [
+            { code: 'base', amountCents: 500 },
+            { code: 'small-order', amountCents: SMALL_ORDER_SURCHARGE_CENTS },
+          ],
+        },
+      ],
+      [
+        SMALL_ORDER_SURCHARGE_FLOOR_CENTS - 1,
+        {
+          deliveryFeeCents: 500 + SMALL_ORDER_SURCHARGE_CENTS,
+          breakdown: [
+            { code: 'base', amountCents: 500 },
+            { code: 'small-order', amountCents: SMALL_ORDER_SURCHARGE_CENTS },
+          ],
+        },
+      ],
+      [
+        SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
+        { deliveryFeeCents: 500, breakdown: [{ code: 'base', amountCents: 500 }] },
+      ],
+    ])('applies small-order surcharge boundary at %s cents subtotal', (subtotalCents, expected) => {
+      expect(calculateDeliveryQuote(subtotalCents, 4)).toEqual(expected);
+    });
+
+    it('adds small-order after base, rush, and weight when all surcharges apply', () => {
+      expect(calculateDeliveryQuote(1499, 4, 'rush', 6000)).toEqual({
+        deliveryFeeCents: 500 + 300 + 200 + SMALL_ORDER_SURCHARGE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 500 },
+          { code: 'rush', amountCents: 300 },
+          { code: 'weight', amountCents: 200 },
+          { code: 'small-order', amountCents: SMALL_ORDER_SURCHARGE_CENTS },
         ],
       });
     });
