@@ -47,9 +47,7 @@ export function calculateDeliveryQuote(
   const base =
     subtotalCents >= FREE_DELIVERY_SUBTOTAL_CENTS
       ? 0
-      : DISTANCE_BANDS.find(
-          (band) => band.maxKm === null || distanceKm <= band.maxKm,
-        )!.feeCents;
+      : DISTANCE_BANDS.find((band) => band.maxKm === null || distanceKm <= band.maxKm)!.feeCents;
 
   const breakdown: QuoteBreakdownLine[] = [{ code: 'base', amountCents: base }];
   if (serviceLevel === 'rush') {

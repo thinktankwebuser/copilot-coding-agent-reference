@@ -302,13 +302,14 @@ describe('POST /quotes', () => {
     expect(
       res
         .json()
-        .breakdown.reduce((sum: number, line: { amountCents: number }) => sum + line.amountCents, 0),
+        .breakdown.reduce(
+          (sum: number, line: { amountCents: number }) => sum + line.amountCents,
+          0,
+        ),
     ).toBe(expectedTotal);
-    expect(
-      res
-        .json()
-        .breakdown.map((line: { code: string }) => line.code),
-    ).toEqual(expectedBreakdown.map((line) => line.code));
+    expect(res.json().breakdown.map((line: { code: string }) => line.code)).toEqual(
+      expectedBreakdown.map((line) => line.code),
+    );
   });
 });
 
@@ -379,14 +380,18 @@ describe('GET /rules', () => {
     expect(baseQuote.statusCode).toBe(200);
     expect(smallOrderQuote.statusCode).toBe(200);
     expect(atSmallOrderFloorQuote.statusCode).toBe(200);
-    expect(smallOrderQuote.json().deliveryFeeCents - atSmallOrderFloorQuote.json().deliveryFeeCents).toBe(
-      rules.smallOrderSurchargeCents,
-    );
+    expect(
+      smallOrderQuote.json().deliveryFeeCents - atSmallOrderFloorQuote.json().deliveryFeeCents,
+    ).toBe(rules.smallOrderSurchargeCents);
 
-    for (const [deliveryWindow, surchargeCents] of Object.entries(rules.deliveryWindowSurchargeCents)) {
+    for (const [deliveryWindow, surchargeCents] of Object.entries(
+      rules.deliveryWindowSurchargeCents,
+    )) {
       const quote = await post({ subtotalCents: baseSubtotal, distanceKm: 4, deliveryWindow });
       expect(quote.statusCode).toBe(200);
-      expect(quote.json().deliveryFeeCents - baseQuote.json().deliveryFeeCents).toBe(surchargeCents);
+      expect(quote.json().deliveryFeeCents - baseQuote.json().deliveryFeeCents).toBe(
+        surchargeCents,
+      );
     }
   });
 });

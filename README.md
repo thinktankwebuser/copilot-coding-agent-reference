@@ -89,20 +89,20 @@ curl -s -X POST http://localhost:3000/quotes \
 
 ## Delivery rules
 
-| Rule | Amount |
-| --- | --- |
-| Distance up to and including `5` km | base `500` cents |
-| Distance over `5` km and up to `15` km | base `1000` cents |
-| Distance over `15` km | base `1500` cents |
-| Subtotal `5000` cents or more | free delivery on the `base` line (`0` cents) |
-| `serviceLevel` is `rush` | `+300` cents |
-| `weightGrams` up to and including `5000` g | `+0` cents |
-| `weightGrams` over `5000` g and up to `20000` g | `+200` cents |
-| `weightGrams` over `20000` g | `+500` cents |
-| `subtotalCents` below `1500` | `+200` cents small-order surcharge |
-| `deliveryWindow` is `daytime` | `+0` cents |
-| `deliveryWindow` is `evening` | `+200` cents |
-| `deliveryWindow` is `weekend` | `+400` cents |
+| Rule                                            | Amount                                       |
+| ----------------------------------------------- | -------------------------------------------- |
+| Distance up to and including `5` km             | base `500` cents                             |
+| Distance over `5` km and up to `15` km          | base `1000` cents                            |
+| Distance over `15` km                           | base `1500` cents                            |
+| Subtotal `5000` cents or more                   | free delivery on the `base` line (`0` cents) |
+| `serviceLevel` is `rush`                        | `+300` cents                                 |
+| `weightGrams` up to and including `5000` g      | `+0` cents                                   |
+| `weightGrams` over `5000` g and up to `20000` g | `+200` cents                                 |
+| `weightGrams` over `20000` g                    | `+500` cents                                 |
+| `subtotalCents` below `1500`                    | `+200` cents small-order surcharge           |
+| `deliveryWindow` is `daytime`                   | `+0` cents                                   |
+| `deliveryWindow` is `evening`                   | `+200` cents                                 |
+| `deliveryWindow` is `weekend`                   | `+400` cents                                 |
 
 Free delivery waives only the `base` line. Rush, weight, small-order, and delivery-window surcharges still apply, and the total always equals the sum of the returned `breakdown` lines.
 
