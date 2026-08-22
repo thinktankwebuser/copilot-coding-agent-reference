@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateDeliveryQuote,
   deliveryFeeCents,
+  EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
+  WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
   WEIGHT_SURCHARGE_HIGH_CENTS,
   WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS,
   WEIGHT_SURCHARGE_LOW_CENTS,
@@ -151,6 +153,62 @@ describe('deliveryFeeCents', () => {
         ],
       });
     });
+
+    it('omitting or using daytime leaves the fee unchanged and adds no delivery-window line', () => {
+      expect(calculateDeliveryQuote(3200, 4)).toEqual({
+        deliveryFeeCents: 500,
+        breakdown: [{ code: 'base', amountCents: 500 }],
+      });
+      expect(calculateDeliveryQuote(3200, 4, 'standard', undefined, 'daytime')).toEqual({
+        deliveryFeeCents: 500,
+        breakdown: [{ code: 'base', amountCents: 500 }],
+      });
+    });
+
+    it('adds evening and weekend delivery-window surcharges', () => {
+      expect(calculateDeliveryQuote(3200, 4, 'standard', undefined, 'evening')).toEqual({
+        deliveryFeeCents: 500 + EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 500 },
+          { code: 'delivery-window', amountCents: EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS },
+        ],
+      });
+      expect(calculateDeliveryQuote(3200, 4, 'standard', undefined, 'weekend')).toEqual({
+        deliveryFeeCents: 500 + WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 500 },
+          { code: 'delivery-window', amountCents: WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS },
+        ],
+      });
+    });
+
+    it('adds delivery-window surcharge under free delivery', () => {
+      expect(calculateDeliveryQuote(5000, 40, 'standard', undefined, 'weekend')).toEqual({
+        deliveryFeeCents: WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 0 },
+          { code: 'delivery-window', amountCents: WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS },
+        ],
+      });
+    });
+
+    it('adds delivery-window last when other surcharges also apply', () => {
+      expect(calculateDeliveryQuote(1499, 4, 'rush', 6000, 'weekend')).toEqual({
+        deliveryFeeCents:
+          500 +
+          300 +
+          200 +
+          SMALL_ORDER_SURCHARGE_CENTS +
+          WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 500 },
+          { code: 'rush', amountCents: 300 },
+          { code: 'weight', amountCents: 200 },
+          { code: 'small-order', amountCents: SMALL_ORDER_SURCHARGE_CENTS },
+          { code: 'delivery-window', amountCents: WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS },
+        ],
+      });
+    });
   });
 
   it('is free when subtotal is at least 5000 cents', () => {
@@ -176,6 +234,16 @@ describe('deliveryFeeCents', () => {
     it('omitting weightGrams keeps the fee unchanged', () => {
       expect(deliveryFeeCents(3200, 4, 'rush')).toBe(800);
       expect(deliveryFeeCents(3200, 4, 'rush', undefined)).toBe(800);
+    });
+
+    it('deliveryWindow defaults to daytime and applies named surcharges', () => {
+      expect(deliveryFeeCents(3200, 4, 'standard', undefined)).toBe(500);
+      expect(deliveryFeeCents(3200, 4, 'standard', undefined, 'evening')).toBe(
+        500 + EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS,
+      );
+      expect(deliveryFeeCents(5000, 40, 'standard', undefined, 'weekend')).toBe(
+        WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
+      );
     });
   });
 });

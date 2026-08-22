@@ -1,5 +1,7 @@
 export const FREE_DELIVERY_SUBTOTAL_CENTS = 5000;
 export const RUSH_SURCHARGE_CENTS = 300;
+export const EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS = 200;
+export const WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS = 400;
 export const WEIGHT_SURCHARGE_LOW_THRESHOLD_GRAMS = 5000;
 export const WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS = 20000;
 export const WEIGHT_SURCHARGE_LOW_CENTS = 200;
@@ -8,8 +10,9 @@ export const SMALL_ORDER_SURCHARGE_FLOOR_CENTS = 1500;
 export const SMALL_ORDER_SURCHARGE_CENTS = 200;
 
 export type ServiceLevel = 'standard' | 'rush';
+export type DeliveryWindow = 'daytime' | 'evening' | 'weekend';
 export type QuoteBreakdownLine = {
-  code: 'base' | 'rush' | 'weight' | 'small-order';
+  code: 'base' | 'rush' | 'weight' | 'small-order' | 'delivery-window';
   amountCents: number;
 };
 export type QuoteCalculation = { deliveryFeeCents: number; breakdown: QuoteBreakdownLine[] };
@@ -19,6 +22,7 @@ export function calculateDeliveryQuote(
   distanceKm: number,
   serviceLevel: ServiceLevel = 'standard',
   weightGrams?: number,
+  deliveryWindow: DeliveryWindow = 'daytime',
 ): QuoteCalculation {
   const base =
     subtotalCents >= FREE_DELIVERY_SUBTOTAL_CENTS
@@ -48,6 +52,16 @@ export function calculateDeliveryQuote(
   if (subtotalCents < SMALL_ORDER_SURCHARGE_FLOOR_CENTS) {
     breakdown.push({ code: 'small-order', amountCents: SMALL_ORDER_SURCHARGE_CENTS });
   }
+  const deliveryWindowSurcharge =
+    deliveryWindow === 'evening'
+      ? EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS
+      : deliveryWindow === 'weekend'
+        ? WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS
+        : 0;
+
+  if (deliveryWindowSurcharge > 0) {
+    breakdown.push({ code: 'delivery-window', amountCents: deliveryWindowSurcharge });
+  }
 
   return {
     deliveryFeeCents: breakdown.reduce((total, line) => total + line.amountCents, 0),
@@ -60,7 +74,14 @@ export function deliveryFeeCents(
   distanceKm: number,
   serviceLevel: ServiceLevel = 'standard',
   weightGrams?: number,
+  deliveryWindow: DeliveryWindow = 'daytime',
 ): number {
-  return calculateDeliveryQuote(subtotalCents, distanceKm, serviceLevel, weightGrams)
+  return calculateDeliveryQuote(
+    subtotalCents,
+    distanceKm,
+    serviceLevel,
+    weightGrams,
+    deliveryWindow,
+  )
     .deliveryFeeCents;
 }
