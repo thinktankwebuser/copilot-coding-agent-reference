@@ -35,7 +35,8 @@ Request:
 ```json
 {
   "subtotalCents": 3200,
-  "distanceKm": 4
+  "distanceKm": 4,
+  "serviceLevel": "rush"
 }
 ```
 
@@ -43,11 +44,17 @@ Response (`200 OK`):
 
 ```json
 {
-  "deliveryFeeCents": 500
+  "deliveryFeeCents": 800,
+  "breakdown": [
+    { "code": "base", "amountCents": 500 },
+    { "code": "rush", "amountCents": 300 }
+  ]
 }
 ```
 
-Both fields are required. `subtotalCents` must be a non-negative integer and `distanceKm` a non-negative number. Unknown fields are ignored. Invalid requests return `400 Bad Request` with:
+`subtotalCents` and `distanceKm` are required. `serviceLevel` is optional and supports `standard` (default) or `rush`.
+
+`subtotalCents` must be a non-negative integer and `distanceKm` a non-negative number. Unknown fields are ignored. Invalid requests return `400 Bad Request` with:
 
 ```json
 {
@@ -71,5 +78,6 @@ curl -s -X POST http://localhost:3000/quotes \
 | Distance up to and including 5 km | 500 cents  |
 | Distance over 5 km, up to 15 km   | 1000 cents |
 | Distance over 15 km               | 1500 cents |
+| `serviceLevel` is `rush`          | +300 cents |
 
 The subtotal rule wins: an order of 5000 cents or more ships free at any distance.
