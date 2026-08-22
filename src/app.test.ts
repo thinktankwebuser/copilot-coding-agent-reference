@@ -75,6 +75,51 @@ describe('POST /quotes', () => {
     });
   });
 
+  it('omitting deliveryWindow uses daytime fee with no extra line', async () => {
+    const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'rush' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 800,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+      ],
+    });
+  });
+
+  it('deliveryWindow daytime uses the existing fee', async () => {
+    const res = await post({
+      subtotalCents: 3200,
+      distanceKm: 4,
+      serviceLevel: 'rush',
+      deliveryWindow: 'daytime',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 800,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+      ],
+    });
+  });
+
+  it('deliveryWindow evening adds a 200-cent surcharge', async () => {
+    const res = await post({
+      subtotalCents: 3200,
+      distanceKm: 4,
+      deliveryWindow: 'evening',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 700,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'delivery-window', amountCents: 200 },
+      ],
+    });
+  });
+
   it('rush with free-delivery subtotal returns 300 cents', async () => {
     const res = await post({ subtotalCents: 5000, distanceKm: 40, serviceLevel: 'rush' });
     expect(res.statusCode).toBe(200);
@@ -83,6 +128,43 @@ describe('POST /quotes', () => {
       breakdown: [
         { code: 'base', amountCents: 0 },
         { code: 'rush', amountCents: 300 },
+      ],
+    });
+  });
+
+  it('weekend delivery applies under free delivery and stays last', async () => {
+    const res = await post({
+      subtotalCents: 1499,
+      distanceKm: 4,
+      serviceLevel: 'rush',
+      weightGrams: 6000,
+      deliveryWindow: 'weekend',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 1600,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 200 },
+        { code: 'small-order', amountCents: 200 },
+        { code: 'delivery-window', amountCents: 400 },
+      ],
+    });
+  });
+
+  it('weekend delivery also applies under free delivery without other surcharges', async () => {
+    const res = await post({
+      subtotalCents: 5000,
+      distanceKm: 40,
+      deliveryWindow: 'weekend',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 400,
+      breakdown: [
+        { code: 'base', amountCents: 0 },
+        { code: 'delivery-window', amountCents: 400 },
       ],
     });
   });
@@ -142,6 +224,8 @@ describe('POST /quotes', () => {
     ['wrong type', { subtotalCents: '3200', distanceKm: 4 }],
     ['negative distance', { subtotalCents: 3200, distanceKm: -1 }],
     ['invalid serviceLevel', { subtotalCents: 3200, distanceKm: 4, serviceLevel: 'express' }],
+    ['invalid deliveryWindow', { subtotalCents: 3200, distanceKm: 4, deliveryWindow: 'night' }],
+    ['non-string deliveryWindow', { subtotalCents: 3200, distanceKm: 4, deliveryWindow: 1 }],
     ['negative weight', { subtotalCents: 3200, distanceKm: 4, weightGrams: -1 }],
     ['fractional weight', { subtotalCents: 3200, distanceKm: 4, weightGrams: 1.5 }],
     ['non-numeric weight', { subtotalCents: 3200, distanceKm: 4, weightGrams: '6000' }],

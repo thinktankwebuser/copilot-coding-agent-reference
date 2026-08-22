@@ -1,11 +1,12 @@
 import Fastify, { type FastifyError } from 'fastify';
-import { calculateDeliveryQuote, type ServiceLevel } from './quote.js';
+import { calculateDeliveryQuote, type DeliveryWindow, type ServiceLevel } from './quote.js';
 
 type QuoteBody = {
   subtotalCents: number;
   distanceKm: number;
   serviceLevel?: ServiceLevel;
   weightGrams?: number;
+  deliveryWindow?: DeliveryWindow;
 };
 
 const quoteBodySchema = {
@@ -16,6 +17,7 @@ const quoteBodySchema = {
     distanceKm: { type: 'number', minimum: 0 },
     serviceLevel: { type: 'string', enum: ['standard', 'rush'] },
     weightGrams: { type: 'integer', minimum: 0 },
+    deliveryWindow: { type: 'string', enum: ['daytime', 'evening', 'weekend'] },
   },
 } as const;
 
@@ -31,8 +33,14 @@ export function buildApp() {
   });
 
   app.post<{ Body: QuoteBody }>('/quotes', { schema: { body: quoteBodySchema } }, (request) => {
-    const { subtotalCents, distanceKm, serviceLevel, weightGrams } = request.body;
-    return calculateDeliveryQuote(subtotalCents, distanceKm, serviceLevel, weightGrams);
+    const { subtotalCents, distanceKm, serviceLevel, weightGrams, deliveryWindow } = request.body;
+    return calculateDeliveryQuote(
+      subtotalCents,
+      distanceKm,
+      serviceLevel,
+      weightGrams,
+      deliveryWindow,
+    );
   });
 
   return app;
