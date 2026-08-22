@@ -4,7 +4,7 @@ A small, stateless HTTP API that returns a delivery fee for an order. Built with
 
 ## Setup
 
-Requires Node.js 20 or newer.
+Requires Node.js 22.
 
 ```sh
 npm ci
