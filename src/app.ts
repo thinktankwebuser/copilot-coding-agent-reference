@@ -1,7 +1,12 @@
 import Fastify, { type FastifyError } from 'fastify';
 import { calculateDeliveryQuote, type ServiceLevel } from './quote.js';
 
-type QuoteBody = { subtotalCents: number; distanceKm: number; serviceLevel?: ServiceLevel };
+type QuoteBody = {
+  subtotalCents: number;
+  distanceKm: number;
+  serviceLevel?: ServiceLevel;
+  weightGrams?: number;
+};
 
 const quoteBodySchema = {
   type: 'object',
@@ -10,6 +15,7 @@ const quoteBodySchema = {
     subtotalCents: { type: 'integer', minimum: 0 },
     distanceKm: { type: 'number', minimum: 0 },
     serviceLevel: { type: 'string', enum: ['standard', 'rush'] },
+    weightGrams: { type: 'integer', minimum: 0 },
   },
 } as const;
 
@@ -25,8 +31,8 @@ export function buildApp() {
   });
 
   app.post<{ Body: QuoteBody }>('/quotes', { schema: { body: quoteBodySchema } }, (request) => {
-    const { subtotalCents, distanceKm, serviceLevel } = request.body;
-    return calculateDeliveryQuote(subtotalCents, distanceKm, serviceLevel);
+    const { subtotalCents, distanceKm, serviceLevel, weightGrams } = request.body;
+    return calculateDeliveryQuote(subtotalCents, distanceKm, serviceLevel, weightGrams);
   });
 
   return app;

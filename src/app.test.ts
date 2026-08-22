@@ -54,6 +54,18 @@ describe('POST /quotes', () => {
     });
   });
 
+  it('omitting weightGrams leaves the fee unchanged', async () => {
+    const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'rush' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 800,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+      ],
+    });
+  });
+
   it('rush with free-delivery subtotal returns 300 cents', async () => {
     const res = await post({ subtotalCents: 5000, distanceKm: 40, serviceLevel: 'rush' });
     expect(res.statusCode).toBe(200);
@@ -66,12 +78,45 @@ describe('POST /quotes', () => {
     });
   });
 
+  it('adds weight surcharge under free delivery', async () => {
+    const res = await post({ subtotalCents: 5000, distanceKm: 40, weightGrams: 6000 });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 200,
+      breakdown: [
+        { code: 'base', amountCents: 0 },
+        { code: 'weight', amountCents: 200 },
+      ],
+    });
+  });
+
+  it('adds weight after rush when both surcharges apply', async () => {
+    const res = await post({
+      subtotalCents: 3200,
+      distanceKm: 4,
+      serviceLevel: 'rush',
+      weightGrams: 6000,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 1000,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 200 },
+      ],
+    });
+  });
+
   it.each([
     ['missing distanceKm', { subtotalCents: 3200 }],
     ['missing subtotalCents', { distanceKm: 4 }],
     ['wrong type', { subtotalCents: '3200', distanceKm: 4 }],
     ['negative distance', { subtotalCents: 3200, distanceKm: -1 }],
     ['invalid serviceLevel', { subtotalCents: 3200, distanceKm: 4, serviceLevel: 'express' }],
+    ['negative weight', { subtotalCents: 3200, distanceKm: 4, weightGrams: -1 }],
+    ['fractional weight', { subtotalCents: 3200, distanceKm: 4, weightGrams: 1.5 }],
+    ['non-numeric weight', { subtotalCents: 3200, distanceKm: 4, weightGrams: '6000' }],
   ])('rejects %s with 400', async (_name, payload) => {
     const res = await post(payload);
     expect(res.statusCode).toBe(400);
