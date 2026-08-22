@@ -9,7 +9,8 @@ Goal: the smallest coherent change that satisfies the Issue, with tests, passing
 
 ## 1. Understand before editing
 
-- Read the full Issue, including comments. Identify the requested behaviour and acceptance criteria before editing. Do not create repository files merely to record this analysis.
+- Read the full Issue, including its comments: `gh issue view <number> --json number,title,body,labels,comments --jq '{number, title, body, labels: [.labels[].name], comments: [.comments[].body]}'`. Do not pass `--comments`; `gh` ignores it whenever `--json` is present, and the comments then go missing without an error.
+- Identify the requested behaviour and acceptance criteria before editing. Do not create repository files merely to record this analysis.
 - If any acceptance criterion is missing or contradictory, and the gap is consequential, apply the `HUMAN DECISION REQUIRED` rule from `AGENTS.md` now, before writing code.
 
 ## 2. Inspect existing patterns
@@ -41,4 +42,5 @@ In the PR description include:
 - The Issue reference and a one-paragraph summary of what changed and why.
 - Which tests were added or changed and what they prove.
 - The verification command run and its result.
-- Any `HUMAN DECISION REQUIRED` blocks, the acceptance criteria they block (PR stays a draft), unresolved failures, or deliberate deviations from the Issue.
+- Any `HUMAN DECISION REQUIRED` blocks, and which acceptance criteria each one blocks. The PR stays a draft only when an unresolved decision blocks an acceptance criterion; an escalation that blocks nothing does not hold the PR back.
+- Any unrelated verification failure, and any deliberate deviation from the Issue.
