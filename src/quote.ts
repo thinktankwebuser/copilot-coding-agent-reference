@@ -4,9 +4,14 @@ export const WEIGHT_SURCHARGE_LOW_THRESHOLD_GRAMS = 5000;
 export const WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS = 20000;
 export const WEIGHT_SURCHARGE_LOW_CENTS = 200;
 export const WEIGHT_SURCHARGE_HIGH_CENTS = 500;
+export const SMALL_ORDER_SURCHARGE_FLOOR_CENTS = 1500;
+export const SMALL_ORDER_SURCHARGE_CENTS = 200;
 
 export type ServiceLevel = 'standard' | 'rush';
-export type QuoteBreakdownLine = { code: 'base' | 'rush' | 'weight'; amountCents: number };
+export type QuoteBreakdownLine = {
+  code: 'base' | 'rush' | 'weight' | 'small-order';
+  amountCents: number;
+};
 export type QuoteCalculation = { deliveryFeeCents: number; breakdown: QuoteBreakdownLine[] };
 
 export function calculateDeliveryQuote(
@@ -39,6 +44,9 @@ export function calculateDeliveryQuote(
     if (weightSurcharge > 0) {
       breakdown.push({ code: 'weight', amountCents: weightSurcharge });
     }
+  }
+  if (subtotalCents < SMALL_ORDER_SURCHARGE_FLOOR_CENTS) {
+    breakdown.push({ code: 'small-order', amountCents: SMALL_ORDER_SURCHARGE_CENTS });
   }
 
   return {

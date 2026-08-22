@@ -42,6 +42,15 @@ describe('POST /quotes', () => {
     });
   });
 
+  it('subtotal at the small-order floor with only required fields is unchanged', async () => {
+    const res = await post({ subtotalCents: 1500, distanceKm: 4 });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 500,
+      breakdown: [{ code: 'base', amountCents: 500 }],
+    });
+  });
+
   it('serviceLevel rush adds 300-cent surcharge', async () => {
     const res = await post({ subtotalCents: 3200, distanceKm: 4, serviceLevel: 'rush' });
     expect(res.statusCode).toBe(200);
@@ -104,6 +113,25 @@ describe('POST /quotes', () => {
         { code: 'base', amountCents: 500 },
         { code: 'rush', amountCents: 300 },
         { code: 'weight', amountCents: 200 },
+      ],
+    });
+  });
+
+  it('adds small-order after base, rush, and weight when applicable', async () => {
+    const res = await post({
+      subtotalCents: 1499,
+      distanceKm: 4,
+      serviceLevel: 'rush',
+      weightGrams: 6000,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: 1200,
+      breakdown: [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 200 },
+        { code: 'small-order', amountCents: 200 },
       ],
     });
   });
