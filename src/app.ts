@@ -1,5 +1,16 @@
 import Fastify, { type FastifyError } from 'fastify';
-import { calculateDeliveryQuote, type DeliveryWindow, type ServiceLevel } from './quote.js';
+import {
+  calculateDeliveryQuote,
+  DELIVERY_WINDOW_SURCHARGE_CENTS,
+  DISTANCE_BANDS,
+  FREE_DELIVERY_SUBTOTAL_CENTS,
+  RUSH_SURCHARGE_CENTS,
+  SMALL_ORDER_SURCHARGE_CENTS,
+  SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
+  WEIGHT_BANDS,
+  type DeliveryWindow,
+  type ServiceLevel,
+} from './quote.js';
 
 type QuoteBody = {
   subtotalCents: number;
@@ -42,6 +53,16 @@ export function buildApp() {
       deliveryWindow,
     );
   });
+
+  app.get('/rules', () => ({
+    freeDeliverySubtotalCents: FREE_DELIVERY_SUBTOTAL_CENTS,
+    distanceBands: DISTANCE_BANDS,
+    rushSurchargeCents: RUSH_SURCHARGE_CENTS,
+    weightBands: WEIGHT_BANDS,
+    smallOrderFloorCents: SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
+    smallOrderSurchargeCents: SMALL_ORDER_SURCHARGE_CENTS,
+    deliveryWindowSurchargeCents: DELIVERY_WINDOW_SURCHARGE_CENTS,
+  }));
 
   return app;
 }

@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
+import {
+  DELIVERY_WINDOW_SURCHARGE_CENTS,
+  DISTANCE_BANDS,
+  FREE_DELIVERY_SUBTOTAL_CENTS,
+  RUSH_SURCHARGE_CENTS,
+  SMALL_ORDER_SURCHARGE_CENTS,
+  SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
+  WEIGHT_BANDS,
+} from './quote.js';
 
 const app = buildApp();
 const post = (payload: unknown) =>
   app.inject({ method: 'POST', url: '/quotes', payload: payload as object });
+const get = () => app.inject({ method: 'GET', url: '/rules' });
 
 describe('POST /quotes', () => {
   it('returns the delivery fee', async () => {
@@ -244,5 +254,153 @@ describe('POST /quotes', () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it.each([
+    [
+      'all surcharges stack in fixed order',
+      {
+        subtotalCents: 1200,
+        distanceKm: 20,
+        serviceLevel: 'rush',
+        weightGrams: 25000,
+        deliveryWindow: 'weekend',
+      },
+      [
+        { code: 'base', amountCents: 1500 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 500 },
+        { code: 'small-order', amountCents: 200 },
+        { code: 'delivery-window', amountCents: 400 },
+      ],
+      2900,
+    ],
+    [
+      'free delivery still keeps surcharges and order',
+      {
+        subtotalCents: 5000,
+        distanceKm: 40,
+        serviceLevel: 'rush',
+        weightGrams: 6000,
+        deliveryWindow: 'evening',
+      },
+      [
+        { code: 'base', amountCents: 0 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 200 },
+        { code: 'delivery-window', amountCents: 200 },
+      ],
+      700,
+    ],
+  ])('%s', async (_name, payload, expectedBreakdown, expectedTotal) => {
+    const res = await post(payload);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: expectedTotal,
+      breakdown: expectedBreakdown,
+    });
+    expect(
+      res
+        .json()
+        .breakdown.reduce(
+          (sum: number, line: { amountCents: number }) => sum + line.amountCents,
+          0,
+        ),
+    ).toBe(expectedTotal);
+    expect(res.json().breakdown.map((line: { code: string }) => line.code)).toEqual(
+      expectedBreakdown.map((line) => line.code),
+    );
+  });
+});
+
+describe('GET /rules', () => {
+  it('returns the published pricing rules', async () => {
+    const res = await get();
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      freeDeliverySubtotalCents: FREE_DELIVERY_SUBTOTAL_CENTS,
+      distanceBands: DISTANCE_BANDS,
+      rushSurchargeCents: RUSH_SURCHARGE_CENTS,
+      weightBands: WEIGHT_BANDS,
+      smallOrderFloorCents: SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
+      smallOrderSurchargeCents: SMALL_ORDER_SURCHARGE_CENTS,
+      deliveryWindowSurchargeCents: DELIVERY_WINDOW_SURCHARGE_CENTS,
+    });
+  });
+
+  it('publishes rules that match what POST /quotes charges', async () => {
+    const rules = (await get()).json();
+    const baseSubtotal = rules.freeDeliverySubtotalCents - 1;
+    const baseQuote = await post({ subtotalCents: baseSubtotal, distanceKm: 4 });
+    const freeDeliveryQuote = await post({
+      subtotalCents: rules.freeDeliverySubtotalCents,
+      distanceKm: 40,
+    });
+    const rushQuote = await post({
+      subtotalCents: rules.freeDeliverySubtotalCents,
+      distanceKm: 40,
+      serviceLevel: 'rush',
+    });
+    const smallOrderQuote = await post({
+      subtotalCents: rules.smallOrderFloorCents - 1,
+      distanceKm: 4,
+    });
+    const atSmallOrderFloorQuote = await post({
+      subtotalCents: rules.smallOrderFloorCents,
+      distanceKm: 4,
+    });
+
+    for (const [index, band] of rules.distanceBands.entries()) {
+      const distanceKm =
+        band.maxKm ?? (rules.distanceBands[index - 1] as { maxKm: number }).maxKm + 1;
+      const quote = await post({ subtotalCents: baseSubtotal, distanceKm });
+      expect(quote.statusCode).toBe(200);
+      expect(quote.json().breakdown[0]).toEqual({ code: 'base', amountCents: band.feeCents });
+
+      if (band.maxKm !== null) {
+        const nextQuote = await post({ subtotalCents: baseSubtotal, distanceKm: band.maxKm + 0.1 });
+        expect(nextQuote.statusCode).toBe(200);
+        expect(nextQuote.json().breakdown[0]).toEqual({
+          code: 'base',
+          amountCents: rules.distanceBands[index + 1].feeCents,
+        });
+      }
+    }
+
+    expect(freeDeliveryQuote.statusCode).toBe(200);
+    expect(freeDeliveryQuote.json().breakdown[0]).toEqual({ code: 'base', amountCents: 0 });
+
+    expect(rushQuote.statusCode).toBe(200);
+    expect(rushQuote.json().deliveryFeeCents - freeDeliveryQuote.json().deliveryFeeCents).toBe(
+      rules.rushSurchargeCents,
+    );
+
+    for (const [index, band] of rules.weightBands.entries()) {
+      const weightGrams =
+        band.maxGrams ?? (rules.weightBands[index - 1] as { maxGrams: number }).maxGrams + 1;
+      const quote = await post({ subtotalCents: baseSubtotal, distanceKm: 4, weightGrams });
+      expect(quote.statusCode).toBe(200);
+      const weightLine = quote
+        .json()
+        .breakdown.find((line: { code: string }) => line.code === 'weight');
+      expect(weightLine?.amountCents ?? 0).toBe(band.surchargeCents);
+    }
+
+    expect(baseQuote.statusCode).toBe(200);
+    expect(smallOrderQuote.statusCode).toBe(200);
+    expect(atSmallOrderFloorQuote.statusCode).toBe(200);
+    expect(
+      smallOrderQuote.json().deliveryFeeCents - atSmallOrderFloorQuote.json().deliveryFeeCents,
+    ).toBe(rules.smallOrderSurchargeCents);
+
+    for (const [deliveryWindow, surchargeCents] of Object.entries(
+      rules.deliveryWindowSurchargeCents,
+    )) {
+      const quote = await post({ subtotalCents: baseSubtotal, distanceKm: 4, deliveryWindow });
+      expect(quote.statusCode).toBe(200);
+      expect(quote.json().deliveryFeeCents - baseQuote.json().deliveryFeeCents).toBe(
+        surchargeCents,
+      );
+    }
   });
 });
