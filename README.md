@@ -80,4 +80,4 @@ curl -s -X POST http://localhost:3000/quotes \
 | Distance over 15 km               | 1500 cents |
 | `serviceLevel` is `rush`          | +300 cents |
 
-The subtotal rule wins: an order of 5000 cents or more ships free at any distance.
+The subtotal rule waives the base fee: an order of 5000 cents or more has a zero-cent base fee at any distance, while rush service still adds 300 cents.
