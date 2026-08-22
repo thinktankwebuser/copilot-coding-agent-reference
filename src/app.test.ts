@@ -356,6 +356,15 @@ describe('GET /rules', () => {
       const quote = await post({ subtotalCents: baseSubtotal, distanceKm });
       expect(quote.statusCode).toBe(200);
       expect(quote.json().breakdown[0]).toEqual({ code: 'base', amountCents: band.feeCents });
+
+      if (band.maxKm !== null) {
+        const nextQuote = await post({ subtotalCents: baseSubtotal, distanceKm: band.maxKm + 0.1 });
+        expect(nextQuote.statusCode).toBe(200);
+        expect(nextQuote.json().breakdown[0]).toEqual({
+          code: 'base',
+          amountCents: rules.distanceBands[index + 1].feeCents,
+        });
+      }
     }
 
     expect(freeDeliveryQuote.statusCode).toBe(200);
