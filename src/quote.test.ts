@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { calculateDeliveryQuote, deliveryFeeCents } from './quote.js';
+import {
+  calculateDeliveryQuote,
+  deliveryFeeCents,
+  WEIGHT_SURCHARGE_HIGH_CENTS,
+  WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS,
+  WEIGHT_SURCHARGE_LOW_CENTS,
+  WEIGHT_SURCHARGE_LOW_THRESHOLD_GRAMS,
+} from './quote.js';
 
 describe('deliveryFeeCents', () => {
   it.each([
@@ -41,6 +48,66 @@ describe('deliveryFeeCents', () => {
         quote.deliveryFeeCents,
       );
     });
+
+    it.each([
+      [
+        WEIGHT_SURCHARGE_LOW_THRESHOLD_GRAMS,
+        { deliveryFeeCents: 500, breakdown: [{ code: 'base', amountCents: 500 }] },
+      ],
+      [
+        WEIGHT_SURCHARGE_LOW_THRESHOLD_GRAMS + 1,
+        {
+          deliveryFeeCents: 500 + WEIGHT_SURCHARGE_LOW_CENTS,
+          breakdown: [
+            { code: 'base', amountCents: 500 },
+            { code: 'weight', amountCents: WEIGHT_SURCHARGE_LOW_CENTS },
+          ],
+        },
+      ],
+      [
+        WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS,
+        {
+          deliveryFeeCents: 500 + WEIGHT_SURCHARGE_LOW_CENTS,
+          breakdown: [
+            { code: 'base', amountCents: 500 },
+            { code: 'weight', amountCents: WEIGHT_SURCHARGE_LOW_CENTS },
+          ],
+        },
+      ],
+      [
+        WEIGHT_SURCHARGE_HIGH_THRESHOLD_GRAMS + 1,
+        {
+          deliveryFeeCents: 500 + WEIGHT_SURCHARGE_HIGH_CENTS,
+          breakdown: [
+            { code: 'base', amountCents: 500 },
+            { code: 'weight', amountCents: WEIGHT_SURCHARGE_HIGH_CENTS },
+          ],
+        },
+      ],
+    ])('applies weight surcharge boundary at %s grams', (weightGrams, expected) => {
+      expect(calculateDeliveryQuote(3200, 4, 'standard', weightGrams)).toEqual(expected);
+    });
+
+    it('adds weight surcharge under free delivery', () => {
+      expect(calculateDeliveryQuote(5000, 40, 'standard', 6000)).toEqual({
+        deliveryFeeCents: 200,
+        breakdown: [
+          { code: 'base', amountCents: 0 },
+          { code: 'weight', amountCents: 200 },
+        ],
+      });
+    });
+
+    it('adds weight after rush when both surcharges apply', () => {
+      expect(calculateDeliveryQuote(3200, 4, 'rush', 6000)).toEqual({
+        deliveryFeeCents: 1000,
+        breakdown: [
+          { code: 'base', amountCents: 500 },
+          { code: 'rush', amountCents: 300 },
+          { code: 'weight', amountCents: 200 },
+        ],
+      });
+    });
   });
 
   it('is free when subtotal is at least 5000 cents', () => {
@@ -61,6 +128,11 @@ describe('deliveryFeeCents', () => {
 
     it('rush with free-delivery subtotal still returns 300 cents', () => {
       expect(deliveryFeeCents(5000, 40, 'rush')).toBe(300);
+    });
+
+    it('omitting weightGrams keeps the fee unchanged', () => {
+      expect(deliveryFeeCents(3200, 4, 'rush')).toBe(800);
+      expect(deliveryFeeCents(3200, 4, 'rush', undefined)).toBe(800);
     });
   });
 });
