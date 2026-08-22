@@ -33,7 +33,8 @@ Goal: the smallest coherent change that satisfies the Issue, with tests, passing
 ## 5. Check the result
 
 - Re-read the Issue. Confirm each acceptance criterion is met by a specific test or change; list any that are not.
-- Review the full diff of the branch against the PR's base branch (`git diff origin/main...HEAD`) for anything outside the Issue's scope. Revert it. Do not use bare `git diff` here: it shows only uncommitted work, so anything you already committed on the branch would escape this check.
+- Review the complete diff of the PR against its base: `gh pr diff` from the branch, or `gh pr diff <number>`. This is the diff GitHub itself computes, so it needs no local base branch, no remote-tracking ref, and no assumption that the base is `main`. Push the branch and open the PR (as a draft, if it is not open yet) before running this: it reports the diff for the pushed head, so an unpushed commit is invisible to it and the check would pass on stale content. Do not use bare `git diff` here: it shows only uncommitted work, so anything you already committed on the branch would escape this check.
+- For every file in that diff, name the acceptance criterion it serves. A file you did not edit by hand still belongs if satisfying the Issue produced it: a lockfile updated by an Issue-mandated dependency change, a regenerated snapshot or build output, a `README.md` section the Issue changes. Revert only what serves no criterion; do not revert a consequence of the change and leave the repository inconsistent.
 
 ## 6. PR evidence
 
@@ -42,5 +43,5 @@ In the PR description include:
 - The Issue reference and a one-paragraph summary of what changed and why.
 - Which tests were added or changed and what they prove.
 - The verification command run and its result.
-- Any `HUMAN DECISION REQUIRED` blocks, and which acceptance criteria each one blocks. The PR stays a draft only when an unresolved decision blocks an acceptance criterion; an escalation that blocks nothing does not hold the PR back.
+- Any `HUMAN DECISION REQUIRED` blocks, and which acceptance criteria each one blocks. An escalation that blocks no acceptance criterion does not by itself hold the PR back; the draft rules in `AGENTS.md` still apply.
 - Any unrelated verification failure, and any deliberate deviation from the Issue.
