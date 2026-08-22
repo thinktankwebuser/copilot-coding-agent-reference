@@ -195,11 +195,7 @@ describe('deliveryFeeCents', () => {
     it('adds delivery-window last when other surcharges also apply', () => {
       expect(calculateDeliveryQuote(1499, 4, 'rush', 6000, 'weekend')).toEqual({
         deliveryFeeCents:
-          500 +
-          300 +
-          200 +
-          SMALL_ORDER_SURCHARGE_CENTS +
-          WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
+          500 + 300 + 200 + SMALL_ORDER_SURCHARGE_CENTS + WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
         breakdown: [
           { code: 'base', amountCents: 500 },
           { code: 'rush', amountCents: 300 },

@@ -82,6 +82,5 @@ export function deliveryFeeCents(
     serviceLevel,
     weightGrams,
     deliveryWindow,
-  )
-    .deliveryFeeCents;
+  ).deliveryFeeCents;
 }

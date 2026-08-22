@@ -1,9 +1,5 @@
 import Fastify, { type FastifyError } from 'fastify';
-import {
-  calculateDeliveryQuote,
-  type DeliveryWindow,
-  type ServiceLevel,
-} from './quote.js';
+import { calculateDeliveryQuote, type DeliveryWindow, type ServiceLevel } from './quote.js';
 
 type QuoteBody = {
   subtotalCents: number;
@@ -37,8 +33,7 @@ export function buildApp() {
   });
 
   app.post<{ Body: QuoteBody }>('/quotes', { schema: { body: quoteBodySchema } }, (request) => {
-    const { subtotalCents, distanceKm, serviceLevel, weightGrams, deliveryWindow } =
-      request.body;
+    const { subtotalCents, distanceKm, serviceLevel, weightGrams, deliveryWindow } = request.body;
     return calculateDeliveryQuote(
       subtotalCents,
       distanceKm,
