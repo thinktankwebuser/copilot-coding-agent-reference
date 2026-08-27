@@ -135,3 +135,19 @@ Response (`200 OK`):
 ```
 
 `null` means “and above” for the final distance and weight bands.
+
+## Agent harness
+
+This repository is also a working example of running GitHub Copilot coding agent against a real
+codebase. The files below define how an agent is expected to work here.
+
+| Path                                                                       | Purpose                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md`                                                                | The implementation contract every coding agent follows: the assigned Issue is the scope, `npm run verify` must pass, and unresolved consequential decisions are escalated in a `HUMAN DECISION REQUIRED` block instead of guessed at. |
+| `.github/skills/implement-issue/SKILL.md`                                  | The step-by-step procedure for implementing an Issue: read the Issue, match existing patterns, make the smallest coherent change, verify, then review the PR diff.                                                                    |
+| `CONTEXT.md`                                                               | The domain glossary. It defines the pricing vocabulary (quote, base fee, surcharge, breakdown, rules) and holds no implementation detail.                                                                                             |
+| `experiments.md`                                                           | The plan for a series of experiments measuring what a human still has to supply when a coding agent does the implementation.                                                                                                          |
+| `.github/workflows/copilot-setup-steps.yml`                                | Prepares the environment GitHub Copilot coding agent runs in.                                                                                                                                                                         |
+| `.github/workflows/plan.md`                                                | A GitHub Agentic Workflows (gh-aw) definition: a `/plan` comment on an issue or discussion breaks the work into sub-issues. `plan.lock.yml` is the compiled output and is generated, not hand-edited.                                 |
+| `.github/skills/agentic-workflows/`, `.github/agents/agentic-workflows.md` | Vendored gh-aw guidance for authoring and debugging those workflows.                                                                                                                                                                  |
+| `.github/mcp.json`                                                         | Registers the local `gh aw mcp-server` so an agent can compile and inspect the workflows.                                                                                                                                             |
