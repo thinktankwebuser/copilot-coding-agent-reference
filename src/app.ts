@@ -4,6 +4,7 @@ import {
   DELIVERY_WINDOW_SURCHARGE_CENTS,
   DISTANCE_BANDS,
   FREE_DELIVERY_SUBTOTAL_CENTS,
+  MAX_DELIVERY_FEE_CENTS,
   RUSH_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
@@ -56,6 +57,7 @@ export function buildApp() {
 
   app.get('/rules', () => ({
     freeDeliverySubtotalCents: FREE_DELIVERY_SUBTOTAL_CENTS,
+    maxDeliveryFeeCents: MAX_DELIVERY_FEE_CENTS,
     distanceBands: DISTANCE_BANDS,
     rushSurchargeCents: RUSH_SURCHARGE_CENTS,
     weightBands: WEIGHT_BANDS,

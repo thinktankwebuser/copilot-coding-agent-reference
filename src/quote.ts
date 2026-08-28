@@ -8,13 +8,14 @@ export const WEIGHT_SURCHARGE_LOW_CENTS = 200;
 export const WEIGHT_SURCHARGE_HIGH_CENTS = 500;
 export const SMALL_ORDER_SURCHARGE_FLOOR_CENTS = 1500;
 export const SMALL_ORDER_SURCHARGE_CENTS = 200;
+export const MAX_DELIVERY_FEE_CENTS = 2000;
 
 export type ServiceLevel = 'standard' | 'rush';
 export type DeliveryWindow = 'daytime' | 'evening' | 'weekend';
 export type DistanceBand = { maxKm: number | null; feeCents: number };
 export type WeightBand = { maxGrams: number | null; surchargeCents: number };
 export type QuoteBreakdownLine = {
-  code: 'base' | 'rush' | 'weight' | 'small-order' | 'delivery-window';
+  code: 'base' | 'rush' | 'weight' | 'small-order' | 'delivery-window' | 'cap';
   amountCents: number;
 };
 export type QuoteCalculation = { deliveryFeeCents: number; breakdown: QuoteBreakdownLine[] };
@@ -71,8 +72,17 @@ export function calculateDeliveryQuote(
     breakdown.push({ code: 'delivery-window', amountCents: deliveryWindowSurcharge });
   }
 
+  const uncappedDeliveryFeeCents = breakdown.reduce((total, line) => total + line.amountCents, 0);
+
+  if (uncappedDeliveryFeeCents > MAX_DELIVERY_FEE_CENTS) {
+    breakdown.push({
+      code: 'cap',
+      amountCents: MAX_DELIVERY_FEE_CENTS - uncappedDeliveryFeeCents,
+    });
+  }
+
   return {
-    deliveryFeeCents: breakdown.reduce((total, line) => total + line.amountCents, 0),
+    deliveryFeeCents: Math.min(uncappedDeliveryFeeCents, MAX_DELIVERY_FEE_CENTS),
     breakdown,
   };
 }
