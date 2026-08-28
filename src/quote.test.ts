@@ -225,6 +225,22 @@ describe('deliveryFeeCents', () => {
         quote.deliveryFeeCents,
       );
     });
+
+    it('leaves a quote at the maximum unchanged without a cap line', () => {
+      const quote = calculateDeliveryQuote(1500, 20, 'rush', 6000);
+
+      expect(quote).toEqual({
+        deliveryFeeCents: MAX_DELIVERY_FEE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 1500 },
+          { code: 'rush', amountCents: 300 },
+          { code: 'weight', amountCents: 200 },
+        ],
+      });
+      expect(quote.breakdown.reduce((sum, line) => sum + line.amountCents, 0)).toBe(
+        quote.deliveryFeeCents,
+      );
+    });
   });
 
   it('is free when subtotal is at least 5000 cents', () => {
