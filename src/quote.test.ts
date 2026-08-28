@@ -3,6 +3,7 @@ import {
   calculateDeliveryQuote,
   deliveryFeeCents,
   EVENING_DELIVERY_WINDOW_SURCHARGE_CENTS,
+  MAX_DELIVERY_FEE_CENTS,
   SMALL_ORDER_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
   WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
@@ -205,6 +206,25 @@ describe('deliveryFeeCents', () => {
         ],
       });
     });
+
+    it('caps the final fee and appends a final cap line when surcharges exceed the maximum', () => {
+      const quote = calculateDeliveryQuote(1000, 20, 'rush', 25000, 'weekend');
+
+      expect(quote).toEqual({
+        deliveryFeeCents: MAX_DELIVERY_FEE_CENTS,
+        breakdown: [
+          { code: 'base', amountCents: 1500 },
+          { code: 'rush', amountCents: 300 },
+          { code: 'weight', amountCents: 500 },
+          { code: 'small-order', amountCents: 200 },
+          { code: 'delivery-window', amountCents: 400 },
+          { code: 'cap', amountCents: -900 },
+        ],
+      });
+      expect(quote.breakdown.reduce((sum, line) => sum + line.amountCents, 0)).toBe(
+        quote.deliveryFeeCents,
+      );
+    });
   });
 
   it('is free when subtotal is at least 5000 cents', () => {
@@ -240,6 +260,10 @@ describe('deliveryFeeCents', () => {
       expect(deliveryFeeCents(5000, 40, 'standard', undefined, 'weekend')).toBe(
         WEEKEND_DELIVERY_WINDOW_SURCHARGE_CENTS,
       );
+    });
+
+    it('never returns more than the maximum delivery fee', () => {
+      expect(deliveryFeeCents(1000, 20, 'rush', 25000, 'weekend')).toBe(MAX_DELIVERY_FEE_CENTS);
     });
   });
 });

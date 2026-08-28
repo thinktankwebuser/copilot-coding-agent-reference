@@ -4,6 +4,7 @@ import {
   DELIVERY_WINDOW_SURCHARGE_CENTS,
   DISTANCE_BANDS,
   FREE_DELIVERY_SUBTOTAL_CENTS,
+  MAX_DELIVERY_FEE_CENTS,
   RUSH_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_CENTS,
   SMALL_ORDER_SURCHARGE_FLOOR_CENTS,
@@ -163,6 +164,28 @@ describe('POST /quotes', () => {
     });
   });
 
+  it('caps the delivery fee and appends a final cap line when needed', async () => {
+    const res = await post({
+      subtotalCents: 1000,
+      distanceKm: 20,
+      serviceLevel: 'rush',
+      weightGrams: 25000,
+      deliveryWindow: 'weekend',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      deliveryFeeCents: MAX_DELIVERY_FEE_CENTS,
+      breakdown: [
+        { code: 'base', amountCents: 1500 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 500 },
+        { code: 'small-order', amountCents: 200 },
+        { code: 'delivery-window', amountCents: 400 },
+        { code: 'cap', amountCents: -900 },
+      ],
+    });
+  });
+
   it('weekend delivery also applies under free delivery without other surcharges', async () => {
     const res = await post({
       subtotalCents: 5000,
@@ -261,6 +284,24 @@ describe('POST /quotes', () => {
       'all surcharges stack in fixed order',
       {
         subtotalCents: 1200,
+        distanceKm: 4,
+        serviceLevel: 'rush',
+        weightGrams: 6000,
+        deliveryWindow: 'weekend',
+      },
+      [
+        { code: 'base', amountCents: 500 },
+        { code: 'rush', amountCents: 300 },
+        { code: 'weight', amountCents: 200 },
+        { code: 'small-order', amountCents: 200 },
+        { code: 'delivery-window', amountCents: 400 },
+      ],
+      1600,
+    ],
+    [
+      'cap keeps breakdown equal to total when uncapped fee exceeds the maximum',
+      {
+        subtotalCents: 1000,
         distanceKm: 20,
         serviceLevel: 'rush',
         weightGrams: 25000,
@@ -272,8 +313,9 @@ describe('POST /quotes', () => {
         { code: 'weight', amountCents: 500 },
         { code: 'small-order', amountCents: 200 },
         { code: 'delivery-window', amountCents: 400 },
+        { code: 'cap', amountCents: -900 },
       ],
-      2900,
+      MAX_DELIVERY_FEE_CENTS,
     ],
     [
       'free delivery still keeps surcharges and order',
@@ -319,6 +361,7 @@ describe('GET /rules', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       freeDeliverySubtotalCents: FREE_DELIVERY_SUBTOTAL_CENTS,
+      maxDeliveryFeeCents: MAX_DELIVERY_FEE_CENTS,
       distanceBands: DISTANCE_BANDS,
       rushSurchargeCents: RUSH_SURCHARGE_CENTS,
       weightBands: WEIGHT_BANDS,
@@ -348,6 +391,13 @@ describe('GET /rules', () => {
     const atSmallOrderFloorQuote = await post({
       subtotalCents: rules.smallOrderFloorCents,
       distanceKm: 4,
+    });
+    const cappedQuote = await post({
+      subtotalCents: 1000,
+      distanceKm: 20,
+      serviceLevel: 'rush',
+      weightGrams: 25000,
+      deliveryWindow: 'weekend',
     });
 
     for (const [index, band] of rules.distanceBands.entries()) {
@@ -402,5 +452,9 @@ describe('GET /rules', () => {
         surchargeCents,
       );
     }
+
+    expect(cappedQuote.statusCode).toBe(200);
+    expect(cappedQuote.json().deliveryFeeCents).toBe(rules.maxDeliveryFeeCents);
+    expect(cappedQuote.json().breakdown.at(-1)).toEqual({ code: 'cap', amountCents: -900 });
   });
 });
