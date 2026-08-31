@@ -42,6 +42,7 @@ In the PR description include:
 
 - The Issue reference and a one-paragraph summary of what changed and why.
 - Which tests were added or changed and what they prove.
+- How each acceptance criterion was verified (a test, command output, or the diff), and any criterion that could not be verified, with the reason.
 - The verification command run and its result.
 - Any `HUMAN DECISION REQUIRED` blocks, and which acceptance criteria each one blocks. An escalation that blocks no acceptance criterion does not by itself hold the PR back; the draft rules in `AGENTS.md` still apply.
 - Any unrelated verification failure, and any deliberate deviation from the Issue.
