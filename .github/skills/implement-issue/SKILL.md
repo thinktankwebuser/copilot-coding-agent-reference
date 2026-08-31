@@ -21,7 +21,7 @@ Goal: the smallest coherent change that satisfies the Issue, with tests, passing
 ## 3. Implement
 
 - Make only the changes necessary to satisfy every acceptance criterion. Do not make unrelated changes.
-- Add or update tests for changed observable behaviour, following the existing patterns (`src/*.test.ts`, Vitest). Ensure every testable acceptance criterion is covered. Do not invent additional requirements merely to increase test coverage.
+- Add or update tests for changed observable behaviour, following the existing patterns (`src/*.test.ts`, Vitest). Ensure every testable acceptance criterion is covered. For acceptance criteria involving boundaries, thresholds, ranges, limits, or comparisons, identify and test the meaningful boundary conditions and adjacent cases; for numeric or ordered values, consider cases below, at, and above the boundary where applicable. Do not invent additional requirements merely to increase test coverage.
 - Update `README.md` only where the Issue changes documented behaviour.
 
 ## 4. Verify
